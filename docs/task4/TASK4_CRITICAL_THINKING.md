@@ -60,3 +60,79 @@ Every fact also receives `SourceSystemID`: `1` for Chinook and `2` for Northwind
 The notebook's EDA output shows a substantial fact-source volume imbalance: 2,240 `InvoiceLine` rows compared with 609,283 `Order Details` rows. This does not by itself indicate that Northwind performs better; Task 3 also notes different transaction volumes and date coverage. Operationally, however, the skew affects extraction batch size, runtime, memory use, lookup-validation cost, retry scope, and reconciliation time. The larger source may require smaller bounded batches and source-specific incremental checkpoints, while both paths must still produce the same fact grain and pass the same business-rule validations.
 
 Incremental processing would also need a stable source-specific boundary and duplicate protection so reruns do not add the same transaction line twice. The current assignment does not implement that pipeline. The important design principle is that operational tuning may differ by source, while canonical identifiers, measure definitions, conformed dates, lineage, and validation outcomes remain consistent.
+
+## 4.2 Schema Evolution for a Third Acquisition
+
+The first modeling question for a third acquisition is: **Does the third company's sales process have the same fundamental grain as `FactSales`: one sales transaction line item?** If yes, the preferred approach is to reuse `FactSales` and the existing conformed dimensions, extending the source mappings rather than redesigning the warehouse. If no, a fundamentally different business process should not be forced into `FactSales` merely to reuse the table.
+
+| Change from Third Acquisition | Recommended Evolution | Why |
+| --- | --- | --- |
+| New source system | Add the conceptual member `3 = ThirdCompany` to `DimSourceSystem`; continue using `FactSales.SourceSystemID`. | Preserves provenance and enables source filtering and cross-business analysis without changing the fact structure. |
+| New source IDs | Extend the namespace convention with values such as `THIRDCOMPANY:12345`. | Prevents cross-source primary-key collisions, accommodates different native ID types, and retains traceability. |
+| Different source field names or joins | Create a source-to-target mapping from the new schema to the current conformed targets. | Source-specific naming and structure should be absorbed by semantic mapping when the business concepts remain equivalent. |
+| Missing target attribute | Store `NULL`, such as when the new source has no email concept. | Avoids fabricating data and distinguishes unavailable information from observed values. |
+| New descriptive attribute | Add a nullable attribute to an existing dimension only after establishing cross-business analytical value and a clear semantic home. | Prevents the model from accumulating unused, source-specific sparse columns. |
+| New product classification | Map to `GenreName` or `CategoryName` only when the meaning is genuinely equivalent; otherwise retain `NULL` or evaluate a new nullable attribute. | Prevents unrelated classification systems from being mislabeled while preserving the simple star design. |
+| Different employee role | Establish whether the source means salesperson, account manager, support representative, or another role before mapping it to `DimEmployee`. | An employee identifier alone does not prove semantic compatibility for BI comparisons. |
+| Different pricing rules or dates | Admit the source to the shared measures and `DimTime` only through the existing semantic contracts. | Keeps revenue and time comparisons consistent across all businesses. |
+| Different business-process grain | Consider a separate fact table that can share conformed dimensions. | Inventory snapshots, subscriptions, returns, service tickets, or shipments are not automatically sales transaction lines. |
+
+### Extend the Existing Conformed Model
+
+When the third company's process can produce one row per sales transaction line, the existing model already provides the integration framework. The new onboarding work is a mapping layer from the third source's business entities into the accepted targets:
+
+- Third-source customer entity → `DimCustomer`
+- Third-source employee or salesperson entity → `DimEmployee`
+- Third-source product or item entity → `DimProduct`
+- Third-source transaction date → `DimTime`
+- Third-source sales line → `FactSales`
+- Third-source identity → `DimSourceSystem`
+
+These are conceptual roles, not claims about the third source's table or column names. Different names, joins, or storage types do not by themselves justify a target-schema change. If the business meaning and fact grain match, the source mapping should perform the required renaming, joining, type conversion, and normalization.
+
+The smallest model extension is a new `DimSourceSystem` member: `3 = ThirdCompany`. Each accepted third-source fact would reference this member through the existing `FactSales.SourceSystemID`. Provenance would therefore remain available for debugging, source-specific filtering, cross-business reporting, and tracing a fact back to its legacy system, without adding a new fact column.
+
+Canonical identifiers should extend in the same way. A conceptual source identifier `12345` becomes `THIRDCOMPANY:12345`, with the same transformation applied to the dimension primary key and every related `FactSales` foreign key. This preserves uniqueness and traceability even if the native ID is numeric, text, or overlaps an existing Chinook or Northwind value. The current assignment continues using prefixed canonical IDs; it does not introduce surrogate warehouse keys. Surrogate keys could be evaluated in a larger production implementation, but they are not required to onboard the hypothetical source under this design.
+
+This approach also avoids source-specific schema expansion. Creating `DimChinookCustomer`, `DimNorthwindCustomer`, and `DimThirdCompanyCustomer`, or separate sales facts for each compatible source, would fragment equivalent concepts and undermine unified analysis. Conformed dimensions, `DimSourceSystem`, canonical IDs, and source-specific mappings provide the intended separation without duplicating the analytical schema.
+
+### Preserve Semantic Consistency
+
+Compatibility must be established by meaning, not by similar field names. The current model already demonstrates this with employees: Northwind records direct order attribution through `Orders.EmployeeID`, while Chinook derives the customer's assigned support representative through `Customer.SupportRepId`. A third source might describe an account manager, salesperson, or another employee relationship. Those are validation possibilities, not claims about an actual source. The team must determine the role represented before mapping it into `DimEmployee` and document how reports may compare it. If the role is not sufficiently compatible, the BI interpretation or a future model extension should change rather than silently relabeling the value.
+
+The same principle applies to `FactSales.SalesAmount`. A third source should join the shared fact only if it can support the agreed line definition `UnitPrice * Quantity`. Onboarding must determine whether its line price is gross or net, whether tax is included, whether discounts are represented, and whether returns appear as negative sales. These are contract questions. The transformation must not automatically apply a source-specific tax or discount or reinterpret negative values, because doing so would give one column different meanings across sources. If a materially different measure is analytically necessary, it should be defined separately under an explicit future rule instead of changing the current `SalesAmount` or its Northwind discount exclusion.
+
+The third source's transaction date should map to the same `DimTime` when it represents the same sales event. Ingestion should normalize it to `FullDate` and derive `DateKey = YYYYMMDD`; a separate company-specific date dimension is unnecessary. If a future process exposes several analytically important dates, such as order, ship, and return dates, role-playing relationships to the conformed date dimension or a different fact design could be evaluated. This is a future modeling option, not a change to the current assignment schema.
+
+Onboarding should therefore be treated as data-contract testing. Before release, the team should validate source primary-key uniqueness, canonical-ID collision prevention, datatype conversions, required-field presence, foreign-key and dimension lookup resolution, valid dates, usable quantity and price fields, duplicate transaction-line detection, NULL handling, correct source-system attribution, measure reconciliation, and mapping completeness. A new source must not silently weaken existing BI definitions merely because its records can be loaded technically.
+
+### Evolve Dimensions Carefully
+
+Attribute onboarding falls into three cases. First, when an equivalent source attribute already exists in the target—such as a customer-city concept mapping to `DimCustomer.City`—it can be mapped directly or normalized to the accepted representation. Second, when the source lacks an existing attribute—such as a hypothetical absence of email—its `DimCustomer.Email` remains `NULL`; no value should be fabricated.
+
+Third, a new source may introduce a useful descriptive attribute that the model does not currently contain. Before extending a dimension, the team should ask whether the attribute supports an actual BI requirement, has a stable meaning, belongs naturally in that dimension, and can be useful across more than one business. It should also assess whether the change would create many source-specific sparse columns. A genuinely useful attribute may be added as nullable in a future model revision, but the warehouse should not copy every available source field automatically.
+
+Product classification illustrates the risk. Chinook contributes `GenreName`, while Northwind contributes `CategoryName`; both remain nullable attributes of `DimProduct`, not separate dimensions. If the third company uses another classification scheme, it should map to either existing attribute only when its business meaning is truly equivalent. Otherwise those attributes stay `NULL`, and a new nullable descriptive field should be considered only when analysis requires it. A separate classification dimension is justified only if the concept becomes important or complex enough to warrant one; the default remains the current simple star rather than immediate snowflaking.
+
+### Introduce New Facts Only for New Grains
+
+A new source with the same line-sale grain should extend mappings and conformed dimensions. A new business process or a different grain may instead require another fact table. Inventory snapshots, subscriptions, returns, service tickets, and shipments are illustrative examples of processes whose events, timing, and measures may not mean “one sales transaction line item.” The acquisition is hypothetical, so this document does not assert that ThirdCompany contains any of them.
+
+Kimball-style dimensional modeling allows separate fact tables to share conformed dimensions. Conceptually, a future `FactInventory` or `FactReturns` could share `DimProduct`, `DimTime`, and `DimSourceSystem` with `FactSales` while preserving its own declared grain and measures. These names illustrate the decision rule only; no table is added to the accepted model. The principle is to reuse dimensions where meanings conform, but never mix incompatible events in `FactSales` merely to avoid creating an appropriate future fact.
+
+### Preserve Backward Compatibility
+
+Adding a compatible third source should be additive. Existing Chinook and Northwind dimension keys remain stable, existing `FactSales` rows do not need rewriting, source names remain unchanged, and the meanings of `SalesQuantity` and `SalesAmount` remain fixed. Existing BI queries and joins should continue to return the same two-source results until third-source facts are loaded.
+
+Once `SourceSystemID = 3` and compatible facts are onboarded, an existing query pattern should naturally return another business without structural changes:
+
+```sql
+SELECT DimSourceSystem.SourceSystemName,
+       SUM(FactSales.SalesAmount)
+FROM FactSales
+JOIN DimSourceSystem
+  ON FactSales.SourceSystemID = DimSourceSystem.SourceSystemID
+GROUP BY DimSourceSystem.SourceSystemName;
+```
+
+This backward compatibility is the main benefit of the current conformed design. The schema evolves through a new source member, canonical namespace, validated mappings, and carefully justified nullable attributes when needed. Only a genuinely different process or grain should trigger consideration of an additional fact, and even then the existing conformed dimensions can remain shared.
