@@ -1,0 +1,71 @@
+// Unified Kimball star schema for Chinook and Northwind sales analysis.
+Project unified_star_schema {
+  database_type: 'SQLite'
+  Note: 'Logical warehouse model. FactSales grain: one sales transaction line item.'
+}
+
+Table "FactSales" {
+  "DateKey" INTEGER [not null]
+  "CustomerID" TEXT
+  "EmployeeID" TEXT
+  "ProductID" TEXT [not null]
+  "SourceSystemID" INTEGER [not null]
+  "SalesQuantity" INTEGER [not null]
+  "SalesAmount" NUMERIC [not null, note: 'UnitPrice * Quantity; Northwind Discount is not applied.']
+
+  Note: 'Grain: one sales transaction line item.'
+}
+
+Table "DimTime" {
+  "DateKey" INTEGER [pk, not null]
+  "FullDate" DATE [not null]
+  "DayOfMonth" INTEGER [not null]
+  "DayOfWeek" TEXT [not null]
+  "Month" INTEGER [not null]
+  "Quarter" INTEGER [not null]
+  "Year" INTEGER [not null]
+}
+
+Table "DimCustomer" {
+  "CustomerID" TEXT [pk, not null]
+  "CustomerName" TEXT [not null]
+  "CompanyName" TEXT
+  "City" TEXT
+  "State" TEXT
+  "Country" TEXT
+  "PostalCode" TEXT
+  "Phone" TEXT
+  "Email" TEXT
+}
+
+Table "DimEmployee" {
+  "EmployeeID" TEXT [pk, not null]
+  "EmployeeName" TEXT [not null]
+  "Title" TEXT
+  "City" TEXT
+  "Country" TEXT
+  "ReportsTo" TEXT [note: 'Self FK to DimEmployee.EmployeeID.']
+}
+
+Table "DimProduct" {
+  "ProductID" TEXT [pk, not null]
+  "ProductName" TEXT [not null]
+  "CategoryName" TEXT
+  "GenreName" TEXT
+  "Composer" TEXT
+  "UnitPrice" NUMERIC
+}
+
+Table "DimSourceSystem" {
+  "SourceSystemID" INTEGER [pk, not null]
+  "SourceSystemName" TEXT [not null]
+
+  Note: 'Members: 1 = Chinook; 2 = Northwind.'
+}
+
+Ref: "FactSales"."DateKey" > "DimTime"."DateKey"
+Ref: "FactSales"."CustomerID" > "DimCustomer"."CustomerID"
+Ref: "FactSales"."EmployeeID" > "DimEmployee"."EmployeeID"
+Ref: "FactSales"."ProductID" > "DimProduct"."ProductID"
+Ref: "FactSales"."SourceSystemID" > "DimSourceSystem"."SourceSystemID"
+Ref: "DimEmployee"."ReportsTo" > "DimEmployee"."EmployeeID"
