@@ -22,3 +22,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+
+# Downloaded source databases
+notebooks/data/
