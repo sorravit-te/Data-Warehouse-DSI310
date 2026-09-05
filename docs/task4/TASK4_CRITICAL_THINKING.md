@@ -136,3 +136,70 @@ GROUP BY DimSourceSystem.SourceSystemName;
 ```
 
 This backward compatibility is the main benefit of the current conformed design. The schema evolves through a new source member, canonical namespace, validated mappings, and carefully justified nullable attributes when needed. Only a genuinely different process or grain should trigger consideration of an additional fact, and even then the existing conformed dimensions can remain shared.
+
+## 4.3 Data Lake vs Data Warehouse
+
+A Data Lake and a Data Warehouse solve different but complementary problems for OmniCorp. A Data Lake is primarily a flexible store for large volumes of relatively raw or lightly processed data. It can retain structured, semi-structured, and unstructured data in source-aligned forms so that structure and interpretation can be applied when data is consumed or transformed—often described as schema-on-read. This flexibility does not remove the need for schemas, metadata, security, or governance.
+
+A Data Warehouse is a curated, integrated, structured analytical store. Data is validated and transformed into predefined business structures before BI consumption—often described as schema-on-write. In this project, that analytical structure is the star schema formed by `FactSales`, `DimCustomer`, `DimEmployee`, `DimProduct`, `DimTime`, and `DimSourceSystem`. Schema-on-read and schema-on-write are useful general distinctions rather than absolute rules: a lake can contain well-structured datasets, and a warehouse environment may retain supporting data outside its primary curated layer.
+
+| Aspect | Data Lake | Data Warehouse |
+| --- | --- | --- |
+| Primary purpose | Preserve flexible, source-aligned data for exploration, reprocessing, and future uses. | Deliver consistent business data for analytical queries and reporting. |
+| Data form | Can contain structured, semi-structured, and unstructured data. | Primarily curated and structured around defined analytical concepts. |
+| Schema approach | Structure may be retained from the source or applied when data is read and transformed. | Target structures and business rules are defined before data is published for use. |
+| Transformation level | Raw or lightly processed data may coexist with validated source-aligned datasets. | Data is standardized, integrated, and mapped into conformed facts and dimensions. |
+| Quality and governance | Requires metadata, lineage, access control, retention rules, profiling, and discoverability despite its flexibility. | Enforces stronger analytical contracts for datatypes, keys, grain, measures, and relationships. |
+| Query experience | Users may need source knowledge and additional preparation before analysis. | Predictable structures support simpler, repeatable analytical SQL. |
+| Typical users and workloads | Often supports data engineers, data scientists, exploration, source investigation, and reprocessing. | Often supports BI analysts, dashboards, management reporting, and governed metrics. These roles are not exclusive. |
+| BI suitability | Useful as an input to BI preparation, but raw datasets may expose conflicting semantics. | Preferred consumption layer for stable cross-business KPIs and reporting. |
+| Acquisition flexibility | Can land a new source before every attribute has a conformed warehouse mapping. | Publishes only the acquired data that satisfies established analytical definitions. |
+| Historical preservation | Retains source representations and source-specific fields for audit or later transformation. | Retains integrated analytical history according to the warehouse model and loading rules. |
+
+### Role of a Data Lake at OmniCorp
+
+Conceptually, a Data Lake could preserve source-aligned extracts from Chinook and Northwind before unified transformation. Relevant Chinook examples include `Customer`, `Invoice`, `InvoiceLine`, `Track`, and `Employee`; Northwind examples include `Customers`, `Orders`, `Order Details`, `Products`, and `Employees`. These names illustrate current source structures, not a requirement that every source table must be copied unchanged into a lake.
+
+Preserving source-aligned data provides several benefits. Engineers can trace a warehouse value back to its original representation, repeat a transformation after mapping rules change, and retain attributes that current BI requirements do not need. For example, `DimProduct` contains the conformed `CategoryName` and `GenreName` attributes, while the sources contain additional fields such as Chinook `Track.Milliseconds` and `Track.Bytes`, and Northwind `Products.QuantityPerUnit`, `Products.UnitsInStock`, and `Products.SupplierID`. A lake can retain those source-specific fields without turning every one into a sparse warehouse column.
+
+The lake also preserves distinctions identified in Section 4.1. Chinook's integer `Customer.CustomerId` and Northwind's text `Customers.CustomerID` can remain in their original source types before the warehouse creates canonical `TEXT` values such as `CHINOOK:<id>` and `NORTHWIND:<id>`. Northwind `Order Details.Discount` should remain available in source-aligned data even though the current warehouse deliberately excludes it from `SalesAmount`. If OmniCorp later approves a separate discount-adjusted measure, the original discount values remain available for controlled reprocessing rather than being reconstructed.
+
+Asymmetric attributes have the same separation of responsibility. Northwind has no customer email source column; Chinook provides genre information; Northwind provides category information. The lake can preserve what each source actually supplies, while the warehouse publishes `NULL` where a conformed target attribute is unavailable. This keeps source detail without fabricating values or exposing every source-specific field to BI users.
+
+A useful lake cannot become an uncontrolled dumping ground. Each landed dataset still needs source-system identification, metadata, lineage, access controls, retention rules, quality profiling, and discoverability. Those controls make raw data understandable and safe enough for investigation and reprocessing; flexibility is not a substitute for governance.
+
+### Role of the Data Warehouse at OmniCorp
+
+The Data Warehouse is the preferred consumption layer for OmniCorp's current BI questions. Its `FactSales` grain is one sales transaction line item, and its conformed dimensions provide stable analytical views of customers, employees, products, dates, and source systems. The warehouse contract standardizes identifiers, preserves documented NULLs, enforces the shared date model, and defines `SalesAmount` as line `UnitPrice * Quantity` with Northwind discount excluded.
+
+This model supports revenue comparisons between Chinook and Northwind, top-customer analysis, top products or tracks, employee analysis with the documented Chinook support-representative caveat, time-series reporting, and source-system comparisons. Task 3.2 demonstrates the intended query pattern: `SUM(FactSales.SalesAmount)` grouped by `DimSourceSystem.SourceSystemName`. BI users can work with one measure and one source dimension rather than understanding `InvoiceLine` versus `Order Details`, `Customer` versus `Customers`, `Track` versus `Products`, or the original customer-key datatype conflict.
+
+The warehouse therefore does more than place data in a SQL database. It publishes agreed business semantics. Canonical identifiers, conformed dimensions, referential-integrity expectations, the line-item fact grain, and the `SalesAmount` definition make repeated queries comparable. BI analysts and managers receive a smaller, governed interface, while engineers and data scientists can still use source-aligned data for investigations or new transformations. These user boundaries are practical tendencies, not absolute restrictions.
+
+### How the Layers Work Together
+
+The responsibilities can be expressed as a conceptual flow:
+
+```text
+Source systems
+      ↓
+Data Lake / raw or source-aligned storage
+      ↓
+Validation + standardization + semantic mapping
+      ↓
+Data Warehouse / conformed star schema
+      ↓
+BI / reporting
+```
+
+The lake preserves source fidelity; the transformation step resolves the integration challenges from Section 4.1; and the warehouse exposes only approved analytical meaning. This division lets OmniCorp keep Northwind `Discount`, original identifiers, and source-specific product attributes while continuing to publish the unchanged warehouse measure, canonical keys, and conformed product attributes. Raw preservation makes future rule changes possible, while curated contracts prevent those changes from silently altering existing reports.
+
+The same pattern supports the third acquisition discussed in Section 4.2. The lake could first land and identify ThirdCompany's source data, retain its original structure, and support profiling and mapping development without immediately adding every source attribute to BI tables. The warehouse would accept only business concepts that conform to the existing dimensions and one-line-sale fact grain, using `SourceSystemID = 3` and the conceptual `THIRDCOMPANY:<source id>` namespace. A genuinely different process or grain would still require separate modeling rather than being forced into `FactSales`.
+
+This separation also creates two levels of quality responsibility. Lake governance establishes what arrived, where it came from, who can use it, how long it is retained, and what profiling found. Warehouse governance establishes whether data satisfies accepted datatypes, canonical identifiers, conformed dimensions, required lookups, the one-transaction-line grain, and the `UnitPrice * Quantity` measure definition. Both layers require controls, but they protect different promises.
+
+### Recommendation
+
+OmniCorp should use the two layers complementarily: a Data Lake as the flexible source-aligned ingestion and historical-retention layer, and a Data Warehouse as the curated, conformed analytical layer for BI. The lake provides flexibility, source preservation, reprocessing capability, and a practical landing point for acquisitions. The warehouse provides consistent business definitions, simpler queries, governed metrics, and stable reporting across companies.
+
+The current DSI310 project primarily represents the Data Warehouse analytical layer: it defines the unified star schema, source-to-target mappings, canonical identifiers, measure rules, and BI usage. It does not physically implement a production Data Lake or a complete production Data Warehouse platform. The complementary architecture described here is a reasoned future operating model, not infrastructure already delivered by this repository.
