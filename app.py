@@ -237,6 +237,14 @@ with tab1:
         )
 
     render_comparison_chart(revenue, "SourceSystemName", "SalesAmount", "SalesAmount")
+    st.markdown(
+        "*Business takeaway: Northwind (food & beverage) accounts for virtually "
+        "all of OmniCorp's combined revenue in the current dataset, while Chinook "
+        "(music) contributes a negligible share. This reflects each business's "
+        "transaction volume in the source data (609,283 vs. 2,240 line items) — "
+        "it is not evidence that one business model is inherently more profitable "
+        "per sale.*"
+    )
 
     st.divider()
     st.markdown("#### Average SalesAmount per Line Item")
@@ -257,6 +265,15 @@ with tab1:
             )
 
     render_comparison_chart(comparison, "SourceSystemName", "AvgLineValue", "AvgLineValue")
+    st.markdown(
+        "*Business takeaway: a typical Northwind sale (≈$736 per line item) is "
+        "far larger than a typical Chinook sale (≈$1.04 per line item), because "
+        "Northwind orders are bulk food/beverage purchases (multiple units per "
+        "line) while Chinook sales are single-track music purchases. Normalizing "
+        "by line item — rather than looking at raw totals — is what actually "
+        "lets a business analyst compare how big a typical sale is between the "
+        "two acquired businesses.*"
+    )
 
     if is_default_filter:
         matches, computed = check_documented_totals(revenue)

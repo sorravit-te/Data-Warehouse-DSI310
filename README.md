@@ -181,10 +181,16 @@ The dashboard's recurring categories are color-coded consistently on a white bac
 
 <table>
   <tr>
-    <td><img src="docs/task3/streamlit_revenue_comparison.png" width="100%"></td>
+    <td>
+      <img src="docs/task3/streamlit_revenue_comparison.png" width="100%">
+      <p><em>Business takeaway: Northwind (food &amp; beverage) accounts for virtually all of OmniCorp's combined revenue in the current dataset, while Chinook (music) contributes a negligible share. This reflects each business's transaction volume in the source data (609,283 vs. 2,240 line items) — it is not evidence that one business model is inherently more profitable per sale. The bar chart shows the true-to-scale gap; the log-scale dot chart below it keeps both businesses visibly plotted on the same chart for comparison.</em></p>
+    </td>
   </tr>
   <tr>
-    <td><img src="docs/task3/streamlit_avg_line_item.png" width="100%"></td>
+    <td>
+      <img src="docs/task3/streamlit_avg_line_item.png" width="100%">
+      <p><em>Business takeaway: a typical Northwind sale (≈$736 per line item) is far larger than a typical Chinook sale (≈$1.04 per line item), because Northwind orders are bulk food/beverage purchases (multiple units per line) while Chinook sales are single-track music purchases. Normalizing by line item — rather than looking at raw totals — is what actually lets a business analyst compare "how big is a typical sale" between the two acquired businesses.</em></p>
+    </td>
   </tr>
 </table>
 
