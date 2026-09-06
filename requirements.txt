@@ -3,3 +3,4 @@ SQLAlchemy
 requests
 matplotlib
 ipykernel
+streamlit

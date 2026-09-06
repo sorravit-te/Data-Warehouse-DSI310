@@ -178,7 +178,7 @@ No currency is stated because the source data and current warehouse design do no
 
 ![Revenue comparison report mock-up](docs/task3/bi_revenue_comparison_mockup.png)
 
-See the [Report Mock-up documentation](docs/task3/BI_DASHBOARD_MOCKUP.md) for the analytical path and source-to-warehouse traceability.
+See the [Report Mock-up documentation](docs/task3/BI_DASHBOARD_MOCKUP.md) for the analytical path and source-to-warehouse traceability. An interactive Streamlit version of this report is available by running `app.py` (see [Running the Streamlit App](#running-the-streamlit-app) below); it reproduces the same figures shown above and covers all six business questions from the dimensional model.
 
 ### Task 4 : Critical Thinking & Data Engineering Challenges
 
@@ -216,6 +216,13 @@ The current repository designs the warehouse analytical layer and its mappings, 
 Data-Warehouse-DSI310/
 ├── README.md
 ├── requirements.txt
+├── app.py
+├── app/
+│   ├── __init__.py
+│   ├── data_loader.py
+│   ├── model.py
+│   ├── queries.py
+│   └── validation.py
 ├── notebooks/
 │   ├── dsi310_northwind_chinook_eda_v1_0.ipynb
 │   └── original/
@@ -257,6 +264,16 @@ pip install -r requirements.txt
 ```
 
 Open `notebooks/dsi310_northwind_chinook_eda_v1_0.ipynb` in VS Code or a Jupyter interface and run the cells in order. The notebook downloads the source SQLite files into `notebooks/data/` when needed. That directory is excluded from Git.
+
+## Running the Streamlit App
+
+With the same virtual environment active and dependencies installed (see above), run:
+
+```powershell
+streamlit run app.py
+```
+
+The app downloads the same Chinook and Northwind SQLite files used by the EDA notebook into `notebooks/data/` on first run (skipped if already present), builds the unified `FactSales` fact table and its five conformed dimensions in memory, and serves an interactive version of the Task 3.2 BI dashboard covering all six business questions from the [dimensional model's BI coverage section](docs/task2/DIMENSIONAL_MODEL.md), plus an interactive version of the Task 3.1 fact-row interpretation. A validation badge on the Revenue tab confirms the app's computed totals match the figures documented in [BI_DASHBOARD_MOCKUP.md](docs/task3/BI_DASHBOARD_MOCKUP.md); the same check can be run standalone with `python -m app.validation`.
 
 ## Project Scope and Limitations
 
