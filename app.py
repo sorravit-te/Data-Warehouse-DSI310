@@ -7,6 +7,7 @@ Built on the Kimball star schema documented in
 ``DimSourceSystem``). Run with ``streamlit run app.py``.
 """
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -45,6 +46,44 @@ def render_colored_metric(label: str, value: str, color: str) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_comparison_chart(df: pd.DataFrame, category_col: str, value_col: str, y_title: str) -> None:
+    """Bar chart (true-to-scale) colored per CATEGORY_COLORS, plus a
+    log-scale dot chart underneath when one category's value dwarfs the
+    other's — the bar chart alone leaves the smaller business's bar
+    visually zero (e.g. Chinook's 2,328.60 next to Northwind's
+    448,475,298.72), so the dot chart is added for a comparable view. A bar
+    mark can't be reused for that: Vega-Lite bars always extend to a zero
+    baseline, which is undefined for log(0), so dots are used instead."""
+    categories = df[category_col].tolist()
+    values = df[value_col]
+    use_log_view = (values > 0).all() and values.max() / values.min() >= 20
+    color_scale = alt.Scale(domain=categories, range=[CATEGORY_COLORS[c] for c in categories])
+
+    def base(scale: alt.Scale) -> alt.Chart:
+        return alt.Chart(df).encode(
+            x=alt.X(f"{category_col}:N", title=None, sort=categories),
+            y=alt.Y(f"{value_col}:Q", title=y_title, scale=scale),
+            color=alt.Color(f"{category_col}:N", scale=color_scale, legend=alt.Legend(title=None)),
+            tooltip=[
+                alt.Tooltip(f"{category_col}:N", title="Source"),
+                alt.Tooltip(f"{value_col}:Q", title=y_title, format=",.2f"),
+            ],
+        )
+
+    bar_chart = base(alt.Scale(type="linear", zero=True)).mark_bar().properties(height=320)
+    st.altair_chart(bar_chart, width="stretch")
+
+    if use_log_view:
+        st.caption(
+            "Bar chart drawn to true scale — the smaller business's bar may "
+            "be nearly invisible here. The log-scale dot chart below keeps "
+            "both businesses visible for comparison; see the metric cards "
+            "above for exact values."
+        )
+        dot_chart = base(alt.Scale(type="log")).mark_circle(size=500).properties(height=320)
+        st.altair_chart(dot_chart, width="stretch")
 
 
 @st.cache_resource(show_spinner="Connecting to source databases…")
@@ -197,12 +236,7 @@ with tab1:
             "Combined", f"{revenue['SalesAmount'].sum():,.2f}", CATEGORY_COLORS["Combined"]
         )
 
-    # st.bar_chart's per-row `color=<column>` form does not apply literal hex
-    # values per category as documented; pivoting to one column per source
-    # system and passing `color=` as an ordered list (matching column order)
-    # is the form that actually renders each bar in its assigned color.
-    revenue_wide = revenue.set_index("SourceSystemName")["SalesAmount"].to_frame().T
-    st.bar_chart(revenue_wide, color=[CATEGORY_COLORS[col] for col in revenue_wide.columns])
+    render_comparison_chart(revenue, "SourceSystemName", "SalesAmount", "SalesAmount")
 
     st.divider()
     st.markdown("#### Average SalesAmount per Line Item")
@@ -222,10 +256,7 @@ with tab1:
                 CATEGORY_COLORS[row["SourceSystemName"]],
             )
 
-    comparison_wide = comparison.set_index("SourceSystemName")["AvgLineValue"].to_frame().T
-    st.bar_chart(
-        comparison_wide, color=[CATEGORY_COLORS[col] for col in comparison_wide.columns]
-    )
+    render_comparison_chart(comparison, "SourceSystemName", "AvgLineValue", "AvgLineValue")
 
     if is_default_filter:
         matches, computed = check_documented_totals(revenue)

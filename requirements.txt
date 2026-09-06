@@ -4,3 +4,4 @@ requests
 matplotlib
 ipykernel
 streamlit
+altair
