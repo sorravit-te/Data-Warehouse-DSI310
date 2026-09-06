@@ -166,19 +166,20 @@ See the complete [Fact Table Row Expression](docs/task3/FACT_ROW_INTERPRETATION.
 
 #### Report Mock-up (BI Dashboard)
 
-The report asks: **How does total revenue compare between the Chinook music business and the Northwind food & beverage business?** It uses `SUM(FactSales.SalesAmount)` grouped by `DimSourceSystem.SourceSystemName`.
+Task 3.2 is delivered as an interactive Streamlit dashboard (`app.py`) rather than a static mock-up. It answers all six business questions from the [dimensional model's BI coverage section](docs/task2/DIMENSIONAL_MODEL.md) across six tabs:
 
-| Source system | Total SalesAmount | Share of combined |
-| --- | ---: | ---: |
-| Chinook | 2,328.60 | 0.0005% |
-| Northwind | 448,475,298.72 | 99.9995% |
-| **Combined** | **448,477,627.32** | **100.0000%** |
+- **Revenue by Source System** — `SUM(FactSales.SalesAmount)` grouped by `DimSourceSystem.SourceSystemName`, with a validation badge confirming the computed totals reproduce the documented figures (Chinook 2,328.60 vs. Northwind 448,475,298.72), plus a normalized **Average SalesAmount per Line Item** comparison (Chinook ≈ 1.04 vs. Northwind ≈ 736.07) since the raw totals are dominated by the ~272x difference in transaction volume (2,240 vs. 609,283 line items) rather than reflecting comparable business performance.
+- **Top Customers** — top 10 by spend, optionally split by source system.
+- **Top Products** — top 10 by spend/quantity, showing Chinook `GenreName` and Northwind `CategoryName` side by side.
+- **Employee Performance** — grouped by employee, with a persistent note on the Chinook support-representative attribution caveat.
+- **Analysis by Date** — revenue/quantity by day, month, quarter, or year.
+- **Source System Comparison** — a fuller Chinook-vs-Northwind breakdown (revenue, quantity, transaction count, average line value).
 
-No currency is stated because the source data and current warehouse design do not establish a unified reporting currency. The large difference reflects the inspected datasets' transaction volumes and date coverage and should not automatically be interpreted as normalized real-world business performance.
+An expander above the tabs also surfaces the Task 3.1 fact-row interpretation interactively, letting a viewer pick any `FactSales` row and see its generated business sentence, not just the one documented example.
 
-![Revenue comparison report mock-up](docs/task3/bi_revenue_comparison_mockup.png)
+The dashboard's recurring categories are color-coded consistently on a white background: **Chinook = yellow (`#eecf8c`)**, **Northwind = blue (`#5388d4`)**, **Combined = teal (`#0d9488`)**.
 
-See the [Report Mock-up documentation](docs/task3/BI_DASHBOARD_MOCKUP.md) for the analytical path and source-to-warehouse traceability. An interactive Streamlit version of this report is available by running `app.py` (see [Running the Streamlit App](#running-the-streamlit-app) below); it reproduces the same figures shown above and covers all six business questions from the dimensional model.
+See [Running the Streamlit App](#running-the-streamlit-app) below to launch it. The original static documentation — [Fact Table Row Expression](docs/task3/FACT_ROW_INTERPRETATION.md) and [Report Mock-up documentation](docs/task3/BI_DASHBOARD_MOCKUP.md) — remains as the source-to-warehouse traceability reference the app's validation check is built against.
 
 ### Task 4 : Critical Thinking & Data Engineering Challenges
 
@@ -273,7 +274,7 @@ With the same virtual environment active and dependencies installed (see above),
 streamlit run app.py
 ```
 
-The app downloads the same Chinook and Northwind SQLite files used by the EDA notebook into `notebooks/data/` on first run (skipped if already present), builds the unified `FactSales` fact table and its five conformed dimensions in memory, and serves an interactive version of the Task 3.2 BI dashboard covering all six business questions from the [dimensional model's BI coverage section](docs/task2/DIMENSIONAL_MODEL.md), plus an interactive version of the Task 3.1 fact-row interpretation. A validation badge on the Revenue tab confirms the app's computed totals match the figures documented in [BI_DASHBOARD_MOCKUP.md](docs/task3/BI_DASHBOARD_MOCKUP.md); the same check can be run standalone with `python -m app.validation`.
+The app downloads the same Chinook and Northwind SQLite files used by the EDA notebook into `notebooks/data/` on first run (skipped if already present) and builds the unified `FactSales` fact table and its five conformed dimensions in memory. See [Report Mock-up (BI Dashboard)](#report-mock-up-bi-dashboard) above for what the dashboard shows. The validation check behind its Revenue-tab badge can also be run standalone with `python -m app.validation`.
 
 ## Project Scope and Limitations
 
