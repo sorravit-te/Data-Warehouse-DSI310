@@ -24,6 +24,28 @@ from app.validation import DOCUMENTED_TOTALS, TOLERANCE
 
 st.set_page_config(page_title="OmniCorp Unified Sales BI", page_icon="📊", layout="wide")
 
+CATEGORY_COLORS = {
+    "Chinook": "#eecf8c",
+    "Northwind": "#5388d4",
+    "Combined": "#0d9488",
+}
+
+
+def render_colored_metric(label: str, value: str, color: str) -> None:
+    st.markdown(
+        f"""
+        <div style="border-left:6px solid {color}; padding:0.4rem 0.9rem; margin-bottom:0.25rem;">
+            <div style="font-size:0.8rem;color:#555;">
+                <span style="display:inline-block;width:10px;height:10px;
+                border-radius:50%;background:{color};margin-right:6px;"></span>
+                {label}
+            </div>
+            <div style="font-size:1.6rem;font-weight:600;color:#111;">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 @st.cache_resource(show_spinner="Connecting to source databases…")
 def get_engines():
@@ -164,10 +186,20 @@ with tab1:
 
     metric_cols = st.columns(len(revenue) + 1)
     for col, (_, row) in zip(metric_cols, revenue.iterrows()):
-        col.metric(row["SourceSystemName"], f"{row['SalesAmount']:,.2f}")
-    metric_cols[-1].metric("Combined", f"{revenue['SalesAmount'].sum():,.2f}")
+        with col:
+            render_colored_metric(
+                row["SourceSystemName"],
+                f"{row['SalesAmount']:,.2f}",
+                CATEGORY_COLORS[row["SourceSystemName"]],
+            )
+    with metric_cols[-1]:
+        render_colored_metric(
+            "Combined", f"{revenue['SalesAmount'].sum():,.2f}", CATEGORY_COLORS["Combined"]
+        )
 
-    st.bar_chart(revenue.set_index("SourceSystemName")["SalesAmount"])
+    revenue_chart_df = revenue.copy()
+    revenue_chart_df["Color"] = revenue_chart_df["SourceSystemName"].map(CATEGORY_COLORS)
+    st.bar_chart(revenue_chart_df, x="SourceSystemName", y="SalesAmount", color="Color")
 
     st.divider()
     st.markdown("#### Average SalesAmount per Line Item")
@@ -180,8 +212,16 @@ with tab1:
     comparison = queries.source_system_comparison(filtered, dim_source_system)
     avg_cols = st.columns(len(comparison))
     for col, (_, row) in zip(avg_cols, comparison.iterrows()):
-        col.metric(row["SourceSystemName"], f"{row['AvgLineValue']:,.2f}")
-    st.bar_chart(comparison.set_index("SourceSystemName")["AvgLineValue"])
+        with col:
+            render_colored_metric(
+                row["SourceSystemName"],
+                f"{row['AvgLineValue']:,.2f}",
+                CATEGORY_COLORS[row["SourceSystemName"]],
+            )
+
+    comparison_chart_df = comparison.copy()
+    comparison_chart_df["Color"] = comparison_chart_df["SourceSystemName"].map(CATEGORY_COLORS)
+    st.bar_chart(comparison_chart_df, x="SourceSystemName", y="AvgLineValue", color="Color")
 
     if is_default_filter:
         matches, computed = check_documented_totals(revenue)
