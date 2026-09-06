@@ -1,4 +1,4 @@
-# Task 3.2 — BI Report / Dashboard Mockup
+# Task 3.2 — Report Mock-up (BI Dashboard)
 
 ## Business Question
 
@@ -10,7 +10,7 @@ How does total revenue compare between the Chinook music business and the Northw
 - Dimension: `DimSourceSystem.SourceSystemName`
 - Grouping: Chinook versus Northwind
 
-`FactSales` is defined at source transaction-line grain. `SalesAmount` is calculated as the source line `UnitPrice × Quantity`, and `DimSourceSystem` identifies whether each fact row originated from Chinook or Northwind.
+`FactSales` contains one row per sales transaction line item. `SalesAmount` is calculated as the source line `UnitPrice × Quantity`, and `DimSourceSystem` identifies whether each fact row originated from Chinook or Northwind.
 
 ## Source Data
 
@@ -35,7 +35,7 @@ No currency symbol is shown because the source data and current warehouse design
 
 Within the provided source datasets, Northwind contributes 99.9995% of combined revenue, compared with 0.0005% from Chinook. Northwind's calculated total is approximately 192,594.39 times Chinook's total. The datasets have substantially different transaction volumes and date coverage, so this comparison describes the supplied data rather than general company performance.
 
-## Dashboard Mockup
+## Report / Dashboard Mock-up
 
 ![Revenue comparison dashboard mockup](bi_revenue_comparison_mockup.png)
 

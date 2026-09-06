@@ -1,4 +1,6 @@
-# Unified Kimball Dimensional Model Contract
+# Task 2 — Dimensional Modeling & Schema Design
+
+> Unified Kimball dimensional model contract for the OmniCorp warehouse.
 
 ## 1. Purpose and scope
 

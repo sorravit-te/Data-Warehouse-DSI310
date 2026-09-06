@@ -1,4 +1,4 @@
-# Task 3.1 — Fact Row Business Interpretation
+# Task 3.1 — Fact Table Row Expression
 
 ## Selected Source Transaction
 
@@ -52,8 +52,6 @@ The sentence references all five dimensions:
 - `DimEmployee`: Steven Buchanan, Sales Manager
 - `DimProduct`: Queso Cabrales
 - `DimSourceSystem`: Northwind
-
-This exceeds the assignment requirement to reference at least three dimensions.
 
 ## Interpretation Notes
 
