@@ -282,14 +282,13 @@ with st.expander("Fact Row Interpretation (Task 3.1)"):
     else:
         st.info("No rows match the current filters.")
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
         "Revenue by Source System",
         "Top Customers",
         "Top Products",
         "Employee Performance",
         "Analysis by Date",
-        "Source System Comparison",
     ]
 )
 
@@ -430,19 +429,3 @@ with tab5:
         chart_data = period_result.set_index(period_col)["SalesAmount"]
     st.bar_chart(chart_data)
     st.dataframe(period_result, width="stretch")
-
-with tab6:
-    st.subheader("Chinook vs. Northwind — Full Comparison")
-    comparison_full = queries.source_system_comparison(filtered, dim_source_system)
-
-    st.markdown("#### Sales Quantity by Source System")
-    render_comparison_chart(comparison_full, "SourceSystemName", "SalesQuantity", "SalesQuantity")
-
-    st.divider()
-    st.markdown("#### Transaction Count by Source System")
-    render_comparison_chart(
-        comparison_full, "SourceSystemName", "TransactionCount", "TransactionCount"
-    )
-
-    st.divider()
-    st.dataframe(comparison_full, width="stretch")

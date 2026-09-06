@@ -166,14 +166,13 @@ See the complete [Fact Table Row Expression](docs/task3/FACT_ROW_INTERPRETATION.
 
 #### Report Mock-up (BI Dashboard)
 
-Task 3.2 is delivered as an interactive Streamlit dashboard (`app.py`) rather than a static mock-up. It answers all six business questions from the [dimensional model's BI coverage section](docs/task2/DIMENSIONAL_MODEL.md) across six tabs:
+Task 3.2 is delivered as an interactive Streamlit dashboard (`app.py`) rather than a static mock-up. It answers the business questions from the [dimensional model's BI coverage section](docs/task2/DIMENSIONAL_MODEL.md) across five tabs:
 
 - **Revenue by Source System** — `SUM(FactSales.SalesAmount)` grouped by `DimSourceSystem.SourceSystemName`, with a validation badge confirming the computed totals reproduce the documented figures (Chinook 2,328.60 vs. Northwind 448,475,298.72), plus a normalized **Average SalesAmount per Line Item** comparison (Chinook ≈ 1.04 vs. Northwind ≈ 736.07) since the raw totals are dominated by the ~272x difference in transaction volume (2,240 vs. 609,283 line items) rather than reflecting comparable business performance.
 - **Top Customers** — top 10 by spend, optionally split by source system.
 - **Top Products** — top 10 by spend/quantity, showing Chinook `GenreName` and Northwind `CategoryName` side by side.
 - **Employee Performance** — grouped by employee, with a persistent note on the Chinook support-representative attribution caveat.
-- **Analysis by Date** — revenue/quantity by day, month, quarter, or year.
-- **Source System Comparison** — a fuller Chinook-vs-Northwind breakdown (revenue, quantity, transaction count, average line value).
+- **Analysis by Date** — revenue/quantity by day, month, quarter, or year, optionally split by source system for the same Chinook-vs-Northwind comparison.
 
 An expander above the tabs also surfaces the Task 3.1 fact-row interpretation interactively, letting a viewer pick any `FactSales` row and see its generated business sentence, not just the one documented example.
 
