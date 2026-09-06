@@ -179,6 +179,15 @@ An expander above the tabs also surfaces the Task 3.1 fact-row interpretation in
 
 The dashboard's recurring categories are color-coded consistently on a white background: **Chinook = yellow (`#eecf8c`)**, **Northwind = blue (`#5388d4`)**, **Combined = teal (`#0d9488`)**.
 
+<table>
+  <tr>
+    <td><img src="docs/task3/streamlit_revenue_comparison.png" width="100%"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/task3/streamlit_avg_line_item.png" width="100%"></td>
+  </tr>
+</table>
+
 See [Running the Streamlit App](#running-the-streamlit-app) below to launch it. The original static documentation — [Fact Table Row Expression](docs/task3/FACT_ROW_INTERPRETATION.md) and [Report Mock-up documentation](docs/task3/BI_DASHBOARD_MOCKUP.md) — remains as the source-to-warehouse traceability reference the app's validation check is built against.
 
 ### Task 4 : Critical Thinking & Data Engineering Challenges
@@ -249,7 +258,9 @@ Data-Warehouse-DSI310/
     ├── task3/
     │   ├── FACT_ROW_INTERPRETATION.md
     │   ├── BI_DASHBOARD_MOCKUP.md
-    │   └── bi_revenue_comparison_mockup.png
+    │   ├── bi_revenue_comparison_mockup.png
+    │   ├── streamlit_revenue_comparison.png
+    │   └── streamlit_avg_line_item.png
     └── task4/
         └── TASK4_CRITICAL_THINKING.md
 ```

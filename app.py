@@ -197,9 +197,12 @@ with tab1:
             "Combined", f"{revenue['SalesAmount'].sum():,.2f}", CATEGORY_COLORS["Combined"]
         )
 
-    revenue_chart_df = revenue.copy()
-    revenue_chart_df["Color"] = revenue_chart_df["SourceSystemName"].map(CATEGORY_COLORS)
-    st.bar_chart(revenue_chart_df, x="SourceSystemName", y="SalesAmount", color="Color")
+    # st.bar_chart's per-row `color=<column>` form does not apply literal hex
+    # values per category as documented; pivoting to one column per source
+    # system and passing `color=` as an ordered list (matching column order)
+    # is the form that actually renders each bar in its assigned color.
+    revenue_wide = revenue.set_index("SourceSystemName")["SalesAmount"].to_frame().T
+    st.bar_chart(revenue_wide, color=[CATEGORY_COLORS[col] for col in revenue_wide.columns])
 
     st.divider()
     st.markdown("#### Average SalesAmount per Line Item")
@@ -219,9 +222,10 @@ with tab1:
                 CATEGORY_COLORS[row["SourceSystemName"]],
             )
 
-    comparison_chart_df = comparison.copy()
-    comparison_chart_df["Color"] = comparison_chart_df["SourceSystemName"].map(CATEGORY_COLORS)
-    st.bar_chart(comparison_chart_df, x="SourceSystemName", y="AvgLineValue", color="Color")
+    comparison_wide = comparison.set_index("SourceSystemName")["AvgLineValue"].to_frame().T
+    st.bar_chart(
+        comparison_wide, color=[CATEGORY_COLORS[col] for col in comparison_wide.columns]
+    )
 
     if is_default_filter:
         matches, computed = check_documented_totals(revenue)

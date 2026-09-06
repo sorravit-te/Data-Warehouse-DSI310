@@ -76,8 +76,15 @@ def _add_prefix(series: pd.Series, prefix: str) -> pd.Series:
 
 
 def _compute_date_key(date_series: pd.Series) -> pd.Series:
-    """Derive a nullable YYYYMMDD integer key; never fabricates missing dates."""
-    parsed = pd.to_datetime(date_series, errors="coerce")
+    """Derive a nullable YYYYMMDD integer key; never fabricates missing dates.
+
+    ``format="mixed"`` is required here: Northwind's ``Orders.OrderDate``
+    mixes date-only strings (``"2016-07-04"``) with full timestamps
+    (``"2023-08-29 09:23:46"``). Without it, pandas infers a single format
+    from the column and silently returns NaT for every row that doesn't
+    match it (observed: ~99.6% of Northwind rows lost their DateKey).
+    """
+    parsed = pd.to_datetime(date_series, errors="coerce", format="mixed")
     date_key_text = parsed.dt.strftime("%Y%m%d")
     return pd.to_numeric(date_key_text, errors="coerce").astype("Int64")
 
