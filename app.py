@@ -127,12 +127,26 @@ def render_product_scatter(df: pd.DataFrame) -> None:
     comes from high volume or a high per-unit price."""
     df = df.copy()
     df["Classification"] = df["GenreName"].fillna(df["CategoryName"]).fillna("Unclassified")
+
+    def padded_domain(series: pd.Series) -> list[float]:
+        lo, hi = series.min(), series.max()
+        margin = (hi - lo) * 0.1 or hi * 0.1 or 1
+        return [lo - margin, hi + margin]
+
     chart = (
         alt.Chart(df)
         .mark_circle(size=200)
         .encode(
-            x=alt.X("SalesQuantity:Q", title="SalesQuantity"),
-            y=alt.Y("SalesAmount:Q", title="SalesAmount"),
+            x=alt.X(
+                "SalesQuantity:Q",
+                title="SalesQuantity",
+                scale=alt.Scale(domain=padded_domain(df["SalesQuantity"])),
+            ),
+            y=alt.Y(
+                "SalesAmount:Q",
+                title="SalesAmount",
+                scale=alt.Scale(domain=padded_domain(df["SalesAmount"])),
+            ),
             color=alt.Color("Classification:N", legend=alt.Legend(title="Genre / Category")),
             tooltip=[
                 alt.Tooltip("ProductName:N", title="Product"),
