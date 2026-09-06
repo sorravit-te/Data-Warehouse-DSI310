@@ -86,6 +86,66 @@ def render_comparison_chart(df: pd.DataFrame, category_col: str, value_col: str,
         st.altair_chart(dot_chart, width="stretch")
 
 
+def render_ranked_bar_chart(
+    df: pd.DataFrame, label_col: str, value_col: str, color_col: str | None = None
+) -> None:
+    """Horizontal bar chart for ranked lists (top customers/employees) — labels
+    read left-to-right on the y-axis instead of being rotated on the x-axis."""
+    order = df.sort_values(value_col, ascending=False)[label_col].tolist()
+    encoding = {
+        "y": alt.Y(f"{label_col}:N", sort=order, title=None),
+        "x": alt.X(f"{value_col}:Q", title=value_col),
+        "tooltip": [
+            alt.Tooltip(f"{label_col}:N", title="Name"),
+            alt.Tooltip(f"{value_col}:Q", title=value_col, format=",.2f"),
+        ],
+    }
+    if color_col:
+        categories = [c for c in df[color_col].dropna().unique().tolist()]
+        encoding["color"] = alt.Color(
+            f"{color_col}:N",
+            scale=alt.Scale(
+                domain=categories, range=[CATEGORY_COLORS.get(c, "#94a3b8") for c in categories]
+            ),
+            legend=alt.Legend(title=None),
+        )
+    else:
+        encoding["color"] = alt.value(CATEGORY_COLORS["Northwind"])
+
+    chart = (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(**encoding)
+        .properties(height=max(220, 28 * len(df)))
+    )
+    st.altair_chart(chart, width="stretch")
+
+
+def render_product_scatter(df: pd.DataFrame) -> None:
+    """Scatter plot of quantity vs. revenue per product — a different chart
+    shape from the ranked bars above, showing whether a product's revenue
+    comes from high volume or a high per-unit price."""
+    df = df.copy()
+    df["Classification"] = df["GenreName"].fillna(df["CategoryName"]).fillna("Unclassified")
+    chart = (
+        alt.Chart(df)
+        .mark_circle(size=200)
+        .encode(
+            x=alt.X("SalesQuantity:Q", title="SalesQuantity"),
+            y=alt.Y("SalesAmount:Q", title="SalesAmount"),
+            color=alt.Color("Classification:N", legend=alt.Legend(title="Genre / Category")),
+            tooltip=[
+                alt.Tooltip("ProductName:N", title="Product"),
+                alt.Tooltip("Classification:N"),
+                alt.Tooltip("SalesQuantity:Q", format=","),
+                alt.Tooltip("SalesAmount:Q", format=",.2f"),
+            ],
+        )
+        .properties(height=360)
+    )
+    st.altair_chart(chart, width="stretch")
+
+
 @st.cache_resource(show_spinner="Connecting to source databases…")
 def get_engines():
     return build_engines()
@@ -296,16 +356,27 @@ with tab1:
 with tab2:
     st.subheader("Top 10 Customers by Spend")
     split_customers = st.checkbox("Split by source system", key="split_customers")
-    st.dataframe(
-        queries.top_customers(
-            filtered, dim_customer, dim_source_system, n=10, split_by_source=split_customers
-        ),
-        width="stretch",
+    top_customers_df = queries.top_customers(
+        filtered, dim_customer, dim_source_system, n=10, split_by_source=split_customers
     )
+    render_ranked_bar_chart(
+        top_customers_df,
+        "CustomerName",
+        "SalesAmount",
+        color_col="SourceSystemName" if split_customers else None,
+    )
+    st.dataframe(top_customers_df, width="stretch")
 
 with tab3:
     st.subheader("Top 10 Products / Tracks by Spend")
-    st.dataframe(queries.top_products(filtered, dim_product, n=10), width="stretch")
+    top_products_df = queries.top_products(filtered, dim_product, n=10)
+    render_product_scatter(top_products_df)
+    st.caption(
+        "Each point is one product: further right means higher unit volume, "
+        "further up means higher revenue. A product far up but not far right "
+        "earns its revenue from a high per-unit price rather than volume."
+    )
+    st.dataframe(top_products_df, width="stretch")
 
 with tab4:
     st.subheader("Employee Performance")
@@ -316,12 +387,16 @@ with tab4:
         "(`Orders.EmployeeID`)."
     )
     split_employees = st.checkbox("Split by source system", key="split_employees")
-    st.dataframe(
-        queries.employee_performance(
-            filtered, dim_employee, dim_source_system, split_by_source=split_employees
-        ),
-        width="stretch",
+    employee_performance_df = queries.employee_performance(
+        filtered, dim_employee, dim_source_system, split_by_source=split_employees
     )
+    render_ranked_bar_chart(
+        employee_performance_df,
+        "EmployeeName",
+        "SalesAmount",
+        color_col="SourceSystemName" if split_employees else None,
+    )
+    st.dataframe(employee_performance_df, width="stretch")
 
 with tab5:
     st.subheader("Analysis by Date")
@@ -344,6 +419,16 @@ with tab5:
 
 with tab6:
     st.subheader("Chinook vs. Northwind — Full Comparison")
-    st.dataframe(
-        queries.source_system_comparison(filtered, dim_source_system), width="stretch"
+    comparison_full = queries.source_system_comparison(filtered, dim_source_system)
+
+    st.markdown("#### Sales Quantity by Source System")
+    render_comparison_chart(comparison_full, "SourceSystemName", "SalesQuantity", "SalesQuantity")
+
+    st.divider()
+    st.markdown("#### Transaction Count by Source System")
+    render_comparison_chart(
+        comparison_full, "SourceSystemName", "TransactionCount", "TransactionCount"
     )
+
+    st.divider()
+    st.dataframe(comparison_full, width="stretch")
