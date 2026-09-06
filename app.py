@@ -169,6 +169,20 @@ with tab1:
 
     st.bar_chart(revenue.set_index("SourceSystemName")["SalesAmount"])
 
+    st.divider()
+    st.markdown("#### Average SalesAmount per Line Item")
+    st.caption(
+        "Raw totals above are dominated by the difference in transaction volume "
+        "(2,240 Chinook line items vs. 609,283 Northwind line items). Average "
+        "SalesAmount per line item normalizes for that, comparing how big a "
+        "typical sale is in each business."
+    )
+    comparison = queries.source_system_comparison(filtered, dim_source_system)
+    avg_cols = st.columns(len(comparison))
+    for col, (_, row) in zip(avg_cols, comparison.iterrows()):
+        col.metric(row["SourceSystemName"], f"{row['AvgLineValue']:,.2f}")
+    st.bar_chart(comparison.set_index("SourceSystemName")["AvgLineValue"])
+
     if is_default_filter:
         matches, computed = check_documented_totals(revenue)
         if matches:
