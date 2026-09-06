@@ -37,7 +37,7 @@ Within the provided source datasets, Northwind contributes 99.9995% of combined 
 
 ## Dashboard Mockup
 
-![Revenue comparison dashboard mockup](../diagrams/bi_revenue_comparison_mockup.png)
+![Revenue comparison dashboard mockup](bi_revenue_comparison_mockup.png)
 
 ## Source-to-Warehouse Traceability
 
