@@ -67,8 +67,27 @@ The [EDA notebook](notebooks/dsi310_northwind_chinook_eda_v1_0.ipynb) downloads 
 
 The two source visuals are documented as **Database Schema Diagrams (Task 1 class-diagram output)**. They show source tables, columns, datatypes, primary keys, foreign keys, and table relationships. DBML definitions are generated from inspected metadata, while dbdiagram.io is used only to render and arrange the final diagrams.
 
-- [Chinook Database Schema Diagram](docs/task1/diagrams/chinook_database_schema.png)
-- [Northwind Database Schema Diagram](docs/task1/diagrams/northwind_database_schema.png)
+#### Database Schema Diagrams (Task 1 Class-Diagram Output)
+
+<table>
+  <tr>
+    <th>Chinook</th>
+    <th>Northwind</th>
+  </tr>
+  <tr>
+    <td>
+      <a href="docs/task1/diagrams/chinook_database_schema.png">
+        <img src="docs/task1/diagrams/chinook_database_schema.png" width="100%">
+      </a>
+    </td>
+    <td>
+      <a href="docs/task1/diagrams/northwind_database_schema.png">
+        <img src="docs/task1/diagrams/northwind_database_schema.png" width="100%">
+      </a>
+    </td>
+  </tr>
+</table>
+
 - [Chinook source DBML](docs/task1/chinook.dbml)
 - [Northwind source DBML](docs/task1/northwind.dbml)
 
